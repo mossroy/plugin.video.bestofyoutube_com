@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import urllib
-import urllib2
+
+import bs4
+import urllib.request
 import socket
 import xbmcaddon
 import xbmcplugin
@@ -17,11 +18,11 @@ xbox = xbmc.getCondVisibility("System.Platform.xbox")
 translation = addon.getLocalizedString
 forceViewMode = addon.getSetting("forceViewMode") == "true"
 filter = addon.getSetting("filter") == "true"
-filterRating=int(addon.getSetting("filterRating"))
-filterThreshold=int(addon.getSetting("filterThreshold"))
+filterRating = int(addon.getSetting("filterRating"))
+filterThreshold = int(addon.getSetting("filterThreshold"))
 icon = xbmc.translatePath('special://home/addons/'+addonID+'/icon.png')
 viewMode = str(addon.getSetting("viewMode"))
-urlMain = "http://www.bestofyoutube.com"
+urlMain = "https://www.bestofyoutube.com"
 
 
 def index():
@@ -59,55 +60,56 @@ def playVideo(id):
 
 def listVideos(url):
     content = getUrl(url)
-    spl = content.split("<div class='main'>")
-    for i in range(1, len(spl), 1):
-        entry = spl[i]
-        match = re.compile('youtube.com/embed/(.+?)"', re.DOTALL).findall(entry)
-        id = match[0]
-        if "?" in id:
-            id = id[:id.find("?")]
-        match = re.compile("name='up'>(.+?)<", re.DOTALL).findall(entry)
-        up = float(match[0])
-        match = re.compile("name='down'>(.+?)<", re.DOTALL).findall(entry)
-        down = float(match[0])
-        thumb = "http://img.youtube.com/vi/"+id+"/0.jpg"
-        match = re.compile("<div class='title'><a href='/(.+?)'>(.+?)</a>", re.DOTALL).findall(entry)
-        title = match[0][1]
-        title = cleanTitle(title)
+    soup = bs4.BeautifulSoup(content, features="html5lib")
+
+    for entry in soup.find_all("div", class_="main"):
+        up = entry.find(lambda tag: tag.has_attr("name") and tag["name"] == "up").contents[0]
+        up = float(up)
+        down = entry.find(lambda tag: tag.has_attr("name") and tag["name"] == "down").contents[0]
+        down = float(down)
+        id = entry.find(lambda tag: tag.has_attr("src") and tag["src"].index("youtube.com/embed"))["src"].split("/")[-1]
+        thumb = "http://img.youtube.com/vi/{}/0.jpg".format(id)
+        title = cleanTitle(entry.select('div.title a')[0].text)
         if (up+down) > 0:
             percentage = int((up/(up+down))*100)
         else:
             percentage = 100
-        if filter and (up+down)>filterThreshold and percentage<filterRating:
+        if filter and (up+down) > filterThreshold and percentage < filterRating:
             continue
-        title = title+" ("+str(percentage)+"%)"
-        addLink(title, id, "playVideo", thumb, str(int(up+down))+" Votes")
-    content = content[content.find('<div class="pagination">'):]
-    content = content[:content.find('</div>')]
-    spl = content.split("<a href=\"")
+
+        title = "{} ({}%)".format(title, percentage)
+        addLink(title, id,
+                "playVideo",
+                thumb,
+                str(int(up)+int(down))+" Votes")
+
+    pagination = soup.find("div", class_="pagination")
     nextUrl = ""
-    for i in range(1, len(spl), 1):
-        entry = spl[i][:spl[i].find('</a>')]
-        url = urlMain+"/"+entry[:entry.find('"')]
-        if entry.find('next &#187;') >= 0:
+    nextPage = ""
+    for link in pagination.find_all('a'):
+        url = urlMain + "/" + link["href"]
+        if link.text.find("next »") >= 0:
             nextUrl = url
             nextPage = url[url.find("page=")+5:]
             if "&" in nextPage:
                 nextPage = nextPage[:nextPage.find("&")]
+
     if nextUrl:
-        if int(nextPage)%2==0:
+        if int(nextPage) % 2 == 0:
             listVideos(nextUrl)
         else:
             addDir(translation(30009), nextUrl, "listVideos", '')
+
     xbmcplugin.endOfDirectory(pluginhandle)
     if forceViewMode:
         xbmc.executebuiltin('Container.SetViewMode('+viewMode+')')
 
 
+
 def getUrl(url):
-    req = urllib2.Request(url)
+    req = urllib.request.Request(url)
     req.add_header('User-Agent', 'BestOfYoutube XBMC Addon v2.1.1')
-    response = urllib2.urlopen(req)
+    response = urllib.request.urlopen(req)
     content = response.read()
     response.close()
     return content
@@ -121,9 +123,11 @@ def cleanTitle(title):
 
 
 def addLink(name, url, mode, iconimage, desc):
-    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)
+    u = sys.argv[0]+"?url="+urllib.parse.quote_plus(url)+"&mode="+str(mode)
     ok = True
-    liz = xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
+    liz = xbmcgui.ListItem(name)
+    liz.setArt({'icon': "DefaultVideo.png",  'thumb': iconimage})
+
     liz.setInfo(type="Video", infoLabels={"Title": name, "Plot": desc})
     liz.setProperty('IsPlayable', 'true')
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz)
@@ -131,9 +135,10 @@ def addLink(name, url, mode, iconimage, desc):
 
 
 def addDir(name, url, mode, iconimage):
-    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)
+    u = sys.argv[0]+"?url="+urllib.parse.quote_plus(url)+"&mode="+str(mode)
     ok = True
-    liz = xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=iconimage)
+    liz = xbmcgui.ListItem(name)
+    liz.setArt({'icon': "DefaultVideo.png",  'thumb': iconimage})
     liz.setInfo(type="Video", infoLabels={"Title": name})
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
     return ok
@@ -150,9 +155,10 @@ def parameters_string_to_dict(parameters):
                 paramDict[paramSplits[0]] = paramSplits[1]
     return paramDict
 
+
 params = parameters_string_to_dict(sys.argv[2])
-mode = urllib.unquote_plus(params.get('mode', ''))
-url = urllib.unquote_plus(params.get('url', ''))
+mode = urllib.parse.unquote_plus(params.get('mode', ''))
+url = urllib.parse.unquote_plus(params.get('url', ''))
 
 if mode == 'listVideos':
     listVideos(url)

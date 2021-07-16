@@ -4,6 +4,7 @@
 import bs4
 import urllib.request
 import socket
+import xbmc
 import xbmcaddon
 import xbmcplugin
 import xbmcgui
@@ -78,6 +79,7 @@ def listVideos(url):
             continue
 
         title = "{} ({}%)".format(title, percentage)
+
         addLink(title, id,
                 "playVideo",
                 thumb,

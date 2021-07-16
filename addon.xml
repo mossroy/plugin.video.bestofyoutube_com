@@ -2,7 +2,8 @@
 <addon id="plugin.video.bestofyoutube_com" name="BestOfYoutube.com" version="2.1.1" provider-name="AddonScriptorDE">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
-        <import addon="plugin.video.youtube" version="3.0.0"/>
+        <import addon="plugin.video.youtube"/>
+        <import addon="script.module.beautifulsoup4"/>
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>video</provides>
@@ -19,5 +20,8 @@
         <forum>http://forum.xbmc.org/showthread.php?tid=132564</forum>
         <email>AddonScriptorDE at yahoo dot de</email>
         <website>http://www.bestofyoutube.com</website>
+        <assets>
+          <icon>resources/icon.png</icon>
+        </assets>
     </extension>
 </addon>

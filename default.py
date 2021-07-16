@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import html
 import bs4
 import urllib.request
 import socket
@@ -68,7 +69,7 @@ def listVideos(url):
         up = float(up)
         down = entry.find(lambda tag: tag.has_attr("name") and tag["name"] == "down").contents[0]
         down = float(down)
-        id = entry.find(lambda tag: tag.has_attr("src") and tag["src"].index("youtube.com/embed"))["src"].split("/")[-1]
+        id = entry.find(lambda tag: tag.has_attr("src") and tag["src"].find("youtube.com/embed")>0)["src"].split("/")[-1]
         thumb = "http://img.youtube.com/vi/{}/0.jpg".format(id)
         title = cleanTitle(entry.select('div.title a')[0].text)
         if (up+down) > 0:
@@ -85,7 +86,7 @@ def listVideos(url):
                 thumb,
                 str(int(up)+int(down))+" Votes")
 
-    pagination = soup.find("div", class_="pagination")
+    pagination = soup.find("div", class_="pagination") or bs4.Tag(name='div')
     nextUrl = ""
     nextPage = ""
     for link in pagination.find_all('a'):
@@ -118,8 +119,10 @@ def getUrl(url):
 
 
 def cleanTitle(title):
-    title = title.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&").replace("&#039;", "'").replace("&quot;", "\"").replace("&szlig;", "ß").replace("&ndash;", "-")
-    title = title.replace("&Auml;", "Ä").replace("&Uuml;", "Ü").replace("&Ouml;", "Ö").replace("&auml;", "ä").replace("&uuml;", "ü").replace("&ouml;", "ö")
+#    title = title.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&").replace("&#039;", "'").replace("&quot;", "\"").replace("&szlig;", "ß").replace("&ndash;", "-")
+
+#    title = title.replace("&Auml;", "Ä").replace("&Uuml;", "Ü").replace("&Ouml;", "Ö").replace("&auml;", "ä").replace("&uuml;", "ü").replace("&ouml;", "ö")
+    title = html.unescape(title)
     title = title.strip()
     return title
 

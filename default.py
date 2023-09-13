@@ -6,6 +6,7 @@ import bs4
 import urllib.request
 import socket
 import xbmc
+import xbmcvfs
 import xbmcaddon
 import xbmcplugin
 import xbmcgui
@@ -22,7 +23,7 @@ forceViewMode = addon.getSetting("forceViewMode") == "true"
 filter = addon.getSetting("filter") == "true"
 filterRating = int(addon.getSetting("filterRating"))
 filterThreshold = int(addon.getSetting("filterThreshold"))
-icon = xbmc.translatePath('special://home/addons/'+addonID+'/icon.png')
+icon = xbmcvfs.translatePath('special://home/addons/'+addonID+'/icon.png')
 viewMode = str(addon.getSetting("viewMode"))
 urlMain = "https://www.bestofyoutube.com"
 
@@ -62,7 +63,7 @@ def playVideo(id):
 
 def listVideos(url):
     content = getUrl(url)
-    soup = bs4.BeautifulSoup(content, features="html5lib")
+    soup = bs4.BeautifulSoup(content, features="html.parser")
 
     for entry in soup.find_all("div", class_="main"):
         up = entry.find(lambda tag: tag.has_attr("name") and tag["name"] == "up").contents[0]

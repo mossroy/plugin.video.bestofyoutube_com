@@ -21,3 +21,7 @@
 2.1.1
 - Added custom user-agent
 - Video listing now makes 2 requests (to show more videos)
+3.0.0
+- Upgrade to Python 3 and Kodi Matrix (by https://github.com/Shtucer/plugin.video.bestofyoutube_com)
+3.1.0
+- Minimal updates for Kodi Nexus (https://github.com/mossroy/plugin.video.bestofyoutube_com)
